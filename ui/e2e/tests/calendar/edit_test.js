@@ -1144,7 +1144,9 @@ Scenario('[C7455] Edit appointment by changing the timeframe', async function (I
     calendar.waitForApp();
 
     I.waitForVisible('.appointment');
+    I.wait(0.1);
     I.scrollTo('.page.current .timeslot:nth-child(23)');
+    I.wait(0.1);
     I.dragAndDrop('.appointment .resizable-n', '.day .timeslot:nth-child(23)');
     I.waitForVisible('.appointment:not(.resizing) .appointment-content .title-container');
     I.wait(0.1);
@@ -1153,7 +1155,9 @@ Scenario('[C7455] Edit appointment by changing the timeframe', async function (I
     I.waitForText('11:00 – 1:00 PM');
     I.click('~Close', '.io-ox-sidepopup');
     I.waitForDetached('.io-ox-sidepopup');
+    I.wait(0.1);
     I.scrollTo('.page.current .timeslot:nth-child(28)');
+    I.wait(0.1);
     I.dragAndDrop('.appointment .resizable-s', '.day .timeslot:nth-child(28)');
     I.waitForVisible('.page.current .appointment:not(.resizing) .appointment-content .title-container');
     I.wait(0.1);
