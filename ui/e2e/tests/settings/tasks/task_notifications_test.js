@@ -24,8 +24,12 @@ After(async function (users) {
 
 Scenario('[C7874] Set notification for new/modified/deleted', async function (I, users, tasks, dialogs) {
     await users.create();
+    await users[0].hasConfig('com.openexchange.event.isEventQueueEnabled', 'false');
+    await users[1].hasConfig('com.openexchange.event.isEventQueueEnabled', 'false');
+    await users[0].hasConfig('com.openexchange.event.eventQueueDelay', 0);
+    await users[1].hasConfig('com.openexchange.event.eventQueueDelay', 0);
 
-    function createAndModifyTask(subject) {
+    function createTask(subject) {
         tasks.newTask();
 
         I.waitForElement('.io-ox-tasks-edit');
@@ -47,10 +51,9 @@ Scenario('[C7874] Set notification for new/modified/deleted', async function (I,
         });
         I.waitForText(users[0].userdata.sur_name, '.io-ox-tasks-edit .participantsrow');
         tasks.create();
+    }
 
-        I.wait(40);
-        I.triggerRefresh();
-
+    function editTask(subject) {
         I.waitForText('Edit', 5, '.classic-toolbar');
         I.retry(5).click('Edit', '.classic-toolbar');
         I.waitForElement('.io-ox-tasks-edit');
@@ -60,10 +63,9 @@ Scenario('[C7874] Set notification for new/modified/deleted', async function (I,
             I.fillField('Description', 'do something else');
         });
         tasks.save();
+    }
 
-        I.wait(40);
-        I.triggerRefresh();
-
+    function deleteTask() {
         I.clickToolbar('Delete');
         dialogs.clickButton('Delete');
     }
@@ -79,15 +81,54 @@ Scenario('[C7874] Set notification for new/modified/deleted', async function (I,
     session('Bob', () => {
         I.login('app=io.ox/tasks', { user: users[1] });
         tasks.waitForApp();
-        createAndModifyTask('task 1');
+        createTask('task 1');
     });
 
     session('Alice', () => {
         I.openApp('Mail');
-
         I.waitForText('New task: task 1', 5, '.list-view.visible-selection');
+    });
+
+    session('Bob', () => {
+        editTask('task 1');
+    });
+
+    session('Alice', async () => {
+        I.openApp('Mail');
+
+        let retries = 60;
+        let element = await I.grabNumberOfVisibleElements('.list-item.selectable.unread');
+        while (element < 2 && retries) {
+            I.waitForElement('#io-ox-refresh-icon', 5, '.taskbar');
+            I.click('.taskbar #io-ox-refresh-icon');
+            I.waitForElement('.launcher .fa-spin-paused', 5);
+            I.wait(1);
+            element = await I.grabNumberOfVisibleElements('.list-item.selectable.unread');
+            retries -= 1;
+        }
         I.waitForText('Task changed: task 1', 5, '.list-view.visible-selection');
+        console.log(60 - retries);
+    });
+
+    session('Bob', () => {
+        deleteTask();
+    });
+
+    session('Alice', async () => {
+        I.openApp('Mail');
+
+        let retries = 60;
+        let element = await I.grabNumberOfVisibleElements('.list-item.selectable.unread');
+        while (element < 3 && retries) {
+            I.waitForElement('#io-ox-refresh-icon', 5, '.taskbar');
+            I.click('.taskbar #io-ox-refresh-icon');
+            I.waitForElement('.launcher .fa-spin-paused', 5);
+            I.wait(1);
+            element = await I.grabNumberOfVisibleElements('.list-item.selectable.unread');
+            retries -= 1;
+        }
         I.waitForText('Task deleted: task 1 edited', 5, '.list-view.visible-selection');
+        console.log(60 - retries);
 
         I.openApp('Settings');
         I.uncheckOption('notifyNewModifiedDeleted');
@@ -95,8 +136,13 @@ Scenario('[C7874] Set notification for new/modified/deleted', async function (I,
     });
 
     session('Bob', () => {
-        createAndModifyTask('task 2');
+        createTask('task 2');
+        I.waitForNetworkTraffic();
+        editTask('task 2');
+        I.waitForNetworkTraffic();
+        deleteTask();
     });
+
 
     session('Alice', () => {
         I.triggerRefresh();
