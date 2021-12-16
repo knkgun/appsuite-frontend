@@ -133,6 +133,7 @@ define('io.ox/core/tk/image-util', [
                         if (self.createImageBitmap) return badChromeVersion ? createImageBitmap(file) : worker.invoke('getImage', file);
 
                         var def = new $.Deferred();
+
                         getImageFallback(result, function (error, size) {
                             if (error) def.reject(error);
                             def.resolve(size);
