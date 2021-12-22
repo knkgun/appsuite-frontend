@@ -126,7 +126,8 @@ define('io.ox/mail/compose/model', [
             this.on('change', this.requestSave);
 
             // explicitly call save here to push the initial changes of the ui (quoting/from/bcc) to the composition space
-            return this.save(_.device('smartphone'));
+            // also set fullsave to true so all pre filled fields are properly saved (would be missing "to" for send mail to all appointment participants for example)
+            return this.save(_.device('smartphone'), false, { fullsave: true });
         },
 
         getMailRef: function () {
@@ -415,7 +416,8 @@ define('io.ox/mail/compose/model', [
             return composeAPI.space.claim(this.get('id'));
         },
 
-        save: function (silent, force) {
+        save: function (silent, force, options) {
+            options = options || {};
             // yes use a proper check for true here, force might be a reference to the model, when called by backbone
             if (force !== true && (this.destroyed || this.paused)) return $.when();
             var prevAttributes = this.prevAttributes,
@@ -423,7 +425,8 @@ define('io.ox/mail/compose/model', [
             // remove pending inline images from content
             attributes.content = attributes.content.replace(/<img[^>]*data-pending="true"[^>]*>/g, '');
 
-            var diff = this.deepDiff(prevAttributes, attributes);
+            // fullsave is used by the initial save. It makes sure pre filled attributes like subject or to field are properly saved
+            var diff = options.fullsave ? attributes : this.deepDiff(prevAttributes, attributes);
             // do not upload attachments on save
             delete diff.attachments;
 
